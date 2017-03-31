@@ -3,16 +3,19 @@ package valandur.webapi.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import valandur.webapi.misc.Permission;
 import valandur.webapi.WebAPI;
 import valandur.webapi.cache.CachedCommand;
 import valandur.webapi.cache.DataCache;
 import valandur.webapi.json.JsonConverter;
+import valandur.webapi.misc.Permission;
 import valandur.webapi.misc.WebAPICommandSource;
 
 import javax.servlet.http.HttpServletResponse;
+import java.security.AccessControlException;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class CmdServlet extends WebAPIServlet {
     @Override
@@ -43,6 +46,11 @@ public class CmdServlet extends WebAPIServlet {
         data.setStatus(HttpServletResponse.SC_OK);
 
         final JsonNode reqJson = (JsonNode) data.getAttribute("body");
+        final List<String> allowCommands = (List<String>) data.getAttribute("cmds");
+
+        if (!canRunCommand(reqJson, allowCommands)) {
+            throw new AccessControlException("An attempt was made to execute an unauthorized command.");
+        }
 
         if (!reqJson.isArray()) {
             data.addJson("result", runCommand(reqJson));
@@ -55,6 +63,12 @@ public class CmdServlet extends WebAPIServlet {
             arr.add(res);
         }
         data.addJson("results", arr);
+    }
+
+    private boolean canRunCommand(JsonNode node, List<String> cmds) {
+        final String cmd = node.get("command").asText();
+
+        return cmds == null || !cmd.contains("*") && cmds.contains(cmd.trim().split(" ")[0]);
     }
 
     private JsonNode runCommand(JsonNode node) {

@@ -2,9 +2,7 @@ package valandur.webapi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
-import com.sun.media.jfxmedia.events.PlayerEvent;
 import ninja.leaping.configurate.ConfigurationNode;
-import ninja.leaping.configurate.ConfigurationOptions;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
@@ -46,22 +44,22 @@ import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.util.Tuple;
 import valandur.webapi.cache.*;
-import valandur.webapi.command.*;
+import valandur.webapi.command.CommandRegistry;
 import valandur.webapi.handlers.AuthHandler;
 import valandur.webapi.handlers.RateLimitHandler;
 import valandur.webapi.handlers.WebAPIErrorHandler;
-import valandur.webapi.hooks.WebHook;
 import valandur.webapi.hooks.WebHooks;
 import valandur.webapi.json.JsonConverter;
-import valandur.webapi.misc.WebAPICommandSource;
 import valandur.webapi.misc.JettyLogger;
+import valandur.webapi.misc.WebAPICommandSource;
 import valandur.webapi.servlets.*;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 
 @Plugin(
         id = WebAPI.ID,
@@ -148,6 +146,10 @@ public class WebAPI {
         Tuple<ConfigurationLoader, ConfigurationNode> tup = loadWithDefaults("config.conf", "defaults/config.conf");
         ConfigurationNode config = tup.getSecond();
 
+        if (config.getNode("debug").getBoolean() && logger instanceof JettyLogger) {
+           ((JettyLogger)logger).setDebugEnabled(true);
+           logger.debug("Debug log Enabled.");
+        }
         serverHost = config.getNode("host").getString();
         serverPort = config.getNode("port").getInt();
         cmdWaitTime = config.getNode("cmdWaitTime").getInt();

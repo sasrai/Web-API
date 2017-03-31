@@ -2,8 +2,8 @@ package valandur.webapi.servlets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import valandur.webapi.misc.Permission;
 import valandur.webapi.WebAPI;
+import valandur.webapi.misc.Permission;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.security.AccessControlException;
 import java.util.List;
 
 public abstract class WebAPIServlet extends HttpServlet {
@@ -53,9 +54,16 @@ public abstract class WebAPIServlet extends HttpServlet {
             // Method does not exist (endpoint/verb not supported)
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
         } catch (InvocationTargetException | IllegalAccessException e) {
-            // Error executing the method
-            e.printStackTrace();
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            Throwable cause = e.getCause();
+
+            // Execution error due to access restriction occurred
+            if (cause instanceof AccessControlException) {
+                resp.sendError(HttpServletResponse.SC_FORBIDDEN);
+            } else {
+                // Error executing the method
+                e.printStackTrace();
+                resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
         }
     }
 
